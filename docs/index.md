@@ -38,4 +38,4 @@ provider "crontinel" {
 - A save is refused if the record was changed in Crontinel after Terraform last read it, so Terraform never silently overwrites someone else's edit. Run `terraform plan` again to see the difference.
 - Creating a resource whose key already exists in Crontinel updates that record instead of failing. Use `terraform import` first if you want to review the difference.
 - API limits apply: 20 cron schedules and 20 outcome rules per app, and your plan's monitor limit.
-- Not covered yet: quality checks, maintenance windows, escalation policies, alert channels and deletes of mutes.
+- Not covered yet: quality checks, alert channels and mutes. Escalation policies take alert channel ids from the dashboard.

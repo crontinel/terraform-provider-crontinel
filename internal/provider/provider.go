@@ -81,7 +81,7 @@ func (p *crontinelProvider) Configure(ctx context.Context, req provider.Configur
 }
 
 func (p *crontinelProvider) Resources(_ context.Context) []func() resource.Resource {
-	return []func() resource.Resource{NewCronScheduleResource, NewHeartbeatResource, NewOutcomeRuleResource}
+	return []func() resource.Resource{NewCronScheduleResource, NewHeartbeatResource, NewOutcomeRuleResource, NewMaintenanceWindowResource, NewEscalationPolicyResource}
 }
 
 func (p *crontinelProvider) DataSources(_ context.Context) []func() datasource.DataSource { return nil }

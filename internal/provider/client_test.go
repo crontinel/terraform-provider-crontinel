@@ -75,3 +75,19 @@ func TestReconcileTagsKeepsExplicitEmptySet(t *testing.T) {
 		t.Fatal("tags from the API must be kept")
 	}
 }
+
+func TestInstantEqualityIgnoresOffsetNotMoment(t *testing.T) {
+	ctx := context.Background()
+	a := instantOrNull(strPtr("2030-12-01T22:00:00+06:00"))
+	same := instantOrNull(strPtr("2030-12-01T16:00:00+00:00"))
+	later := instantOrNull(strPtr("2030-12-01T16:15:00+00:00"))
+
+	if eq, _ := a.StringSemanticEquals(ctx, same); !eq {
+		t.Fatal("the same moment in another offset must be equal")
+	}
+	if eq, _ := a.StringSemanticEquals(ctx, later); eq {
+		t.Fatal("a different moment must not be equal")
+	}
+}
+
+func strPtr(s string) *string { return &s }
