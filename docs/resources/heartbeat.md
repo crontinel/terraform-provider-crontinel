@@ -28,7 +28,7 @@ resource "crontinel_heartbeat" "queue_worker" {
 
 ### Optional
 
-- `grace_minutes` (Number) Extra minutes before alerting, 1 to 1440. Leave unset to use the server default.
+- `grace_minutes` (Number) Extra minutes before alerting, 1 to 1440. Leave unset to use the server default; the value in effect is shown. Removing it later keeps the current value.
 - `enabled` (Boolean) Default `true`.
 - `tags` (Set of String) Up to 10 lowercase slugs.
 

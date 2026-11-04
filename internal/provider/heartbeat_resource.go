@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -58,10 +59,11 @@ func (r *heartbeatResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 			"name": schema.StringAttribute{Required: true, Description: "The monitor's key.",
 				PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
 			"interval_minutes": schema.Int64Attribute{Required: true, Description: "Expected minutes between pings (1 to 10080)."},
-			"grace_minutes":    schema.Int64Attribute{Optional: true, Description: "Extra minutes before alerting (1 to 1440). Leave unset to use the server default."},
-			"enabled":          schema.BoolAttribute{Optional: true, Computed: true, Default: booldefault.StaticBool(true)},
-			"tags":             schema.SetAttribute{Optional: true, ElementType: types.StringType, Description: "Up to 10 lowercase slugs."},
-			"version":          schema.StringAttribute{Computed: true, Description: "Changes whenever the record changes."},
+			"grace_minutes": schema.Int64Attribute{Optional: true, Computed: true, PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
+				Description: "Extra minutes before alerting (1 to 1440). Leave unset to use the server default; the value in effect is shown."},
+			"enabled": schema.BoolAttribute{Optional: true, Computed: true, Default: booldefault.StaticBool(true)},
+			"tags":    schema.SetAttribute{Optional: true, ElementType: types.StringType, Description: "Up to 10 lowercase slugs."},
+			"version": schema.StringAttribute{Computed: true, Description: "Changes whenever the record changes."},
 		},
 	}
 }
@@ -70,17 +72,14 @@ func (r *heartbeatResource) Configure(_ context.Context, req resource.ConfigureR
 	r.client = clientFrom(req.ProviderData, &resp.Diagnostics)
 }
 
-func (m *heartbeatModel) apply(a *heartbeatAPI, keepGraceFromPlan bool) {
+func (m *heartbeatModel) apply(a *heartbeatAPI) {
 	m.ID = types.StringValue(strconv.FormatInt(a.ID, 10))
 	m.Name = types.StringValue(a.Name)
 	m.IntervalMinutes = types.Int64Value(a.IntervalMinutes)
-	// The server fills a default grace when none is sent; keep it out of state if the config leaves it unset.
-	if !keepGraceFromPlan || !m.GraceMinutes.IsNull() {
-		if a.GraceMinutes != nil {
-			m.GraceMinutes = types.Int64Value(*a.GraceMinutes)
-		} else {
-			m.GraceMinutes = types.Int64Null()
-		}
+	if a.GraceMinutes != nil {
+		m.GraceMinutes = types.Int64Value(*a.GraceMinutes)
+	} else {
+		m.GraceMinutes = types.Int64Null()
 	}
 	m.Enabled = types.BoolValue(a.Enabled)
 	m.Tags = reconcileTags(m.Tags, a.Tags)
@@ -94,7 +93,7 @@ func (r *heartbeatResource) save(ctx context.Context, plan *heartbeatModel, ifVe
 	}
 	body := map[string]any{"name": plan.Name.ValueString(), "interval_minutes": plan.IntervalMinutes.ValueInt64(),
 		"enabled": plan.Enabled.ValueBool(), "tags": tags}
-	if !plan.GraceMinutes.IsNull() {
+	if !plan.GraceMinutes.IsNull() && !plan.GraceMinutes.IsUnknown() {
 		body["grace_minutes"] = plan.GraceMinutes.ValueInt64()
 	}
 	if ifVersion != "" {
@@ -118,7 +117,7 @@ func (r *heartbeatResource) Create(ctx context.Context, req resource.CreateReque
 		apiDiag(&resp.Diagnostics, "creating the heartbeat", err)
 		return
 	}
-	plan.apply(out, true)
+	plan.apply(out)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -137,7 +136,7 @@ func (r *heartbeatResource) Read(ctx context.Context, req resource.ReadRequest, 
 		apiDiag(&resp.Diagnostics, "reading the heartbeat", err)
 		return
 	}
-	state.apply(&out, true)
+	state.apply(&out)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -153,7 +152,7 @@ func (r *heartbeatResource) Update(ctx context.Context, req resource.UpdateReque
 		apiDiag(&resp.Diagnostics, "updating the heartbeat", err)
 		return
 	}
-	plan.apply(out, true)
+	plan.apply(out)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 

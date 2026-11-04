@@ -24,9 +24,12 @@ Documentation is in [`docs/`](docs/index.md) and on the Terraform Registry. Need
 ## Develop
 
 ```bash
-go build ./... && go test ./...
+go build ./... && go test ./...                 # unit tests; acceptance tests are skipped
+TF_ACC=1 go test ./... -count=1                  # also runs real Terraform against a fake Crontinel API
 go build -o /tmp/tf-provider/terraform-provider-crontinel .
 ```
+
+The acceptance tests live in `internal/provider/provider_test.go` and run against `fakeapi_test.go`, which imitates the configuration API (upsert by key, per-record version, `if_version` refusal). When the real API changes, update the fake to match, and re-check against a local Crontinel with a real key.
 
 Point Terraform at the local build with a CLI config:
 
