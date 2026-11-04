@@ -1,6 +1,6 @@
 # Terraform provider for Crontinel
 
-Manage [Crontinel](https://crontinel.com) cron schedules, heartbeats and outcome rules as code.
+Manage [Crontinel](https://crontinel.com) cron schedules, heartbeats, outcome rules, maintenance windows and escalation policies as code.
 
 ```hcl
 resource "crontinel_cron_schedule" "nightly_import" {
